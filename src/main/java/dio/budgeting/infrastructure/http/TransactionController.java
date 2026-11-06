@@ -1,6 +1,5 @@
 package dio.budgeting.infrastructure.http;
 
-import dio.budgeting.TranscriptionController;
 import dio.budgeting.application.ListTransactonsByCategoryUseCase;
 import dio.budgeting.application.PersistTransactionUseCase;
 import dio.budgeting.domain.Category;
@@ -9,6 +8,7 @@ import dio.budgeting.infrastructure.http.response.TransactionResponse;
 import org.springframework.ai.audio.transcription.TranscriptionModel;
 import org.springframework.ai.audio.tts.TextToSpeechModel;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiAudioTranscriptionOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -39,7 +39,7 @@ public class TransactionController {
         this.persistTransactionUseCase = persistTransactionUseCase;
         this.listTransactonsByCategoryUseCase = listTransactonsByCategoryUseCase;
         this.textToSpeechModel = textToSpeechModel;
-        this.transcriptionModel =transcriptionModel;
+        this.transcriptionModel = transcriptionModel;
         this.chatClient = chatClientBuilder
                 .defaultSystem(systemPrompt.getContentAsString(Charset.defaultCharset()))
                 .defaultTools(persistTransactionUseCase, listTransactonsByCategoryUseCase)
@@ -49,7 +49,7 @@ public class TransactionController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TransactionResponse createTransaction(@RequestBody TransactionRequest request) {
-       var transaction =  persistTransactionUseCase.execute(request.toInput());
+       var transaction = persistTransactionUseCase.execute(request.toInput());
        return TransactionResponse.from(transaction);
     }
 
@@ -60,9 +60,19 @@ public class TransactionController {
     }
 
     @PostMapping(value = "/ai", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = "audio/mp3")
-    ResponseEntity<Resource> transcribe(@RequestParam("file") MultipartFile file) throws IOException {
+    public ResponseEntity<Resource> transcribe(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "language", required = false) String language) throws IOException {
 
-        var userMessage = transcriptionModel.transcribe(file.getResource());
+        String userMessage;
+        if (language != null && !language.isBlank()) {
+            var options = OpenAiAudioTranscriptionOptions.builder()
+                    .language(language)
+                    .build();
+            userMessage = transcriptionModel.transcribe(file.getResource(), options);
+        } else {
+            userMessage = transcriptionModel.transcribe(file.getResource());
+        }
         System.out.println(userMessage);
 
         var result = chatClient.prompt().user(userMessage).call().content();

@@ -11,9 +11,12 @@ import dio.budgeting.infrastructure.http.response.TransactionResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.ai.audio.transcription.AudioTranscriptionOptions;
 import org.springframework.ai.audio.transcription.TranscriptionModel;
+import org.springframework.ai.openai.OpenAiAudioTranscriptionOptions;
 import org.springframework.ai.audio.tts.TextToSpeechModel;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -30,6 +33,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -375,6 +379,87 @@ class TransactionControllerTest {
         
         // Assert
         verify(textToSpeechModel, times(1)).call("ai response");
+    }
+
+    @Test
+    @DisplayName("Deve transcrever áudio com opção de idioma informado e processar com IA")
+    void testTranscribeAudioWithLanguageSuccess() throws Exception {
+        // Arrange
+        byte[] audioContent = "fake audio content".getBytes();
+        MockMultipartFile file = new MockMultipartFile(
+            "file",
+            "test.mp3",
+            "audio/mpeg",
+            audioContent
+        );
+        var transcriptionText = "Gastei 150 reais no mercado";
+        var aiResponse = "Transação registrada: Compra no mercado - R$ 150,00 - Alimentação";
+        var ttsAudio = "fake mp3 audio response".getBytes();
+
+        when(transcriptionModel.transcribe(any(Resource.class), any(AudioTranscriptionOptions.class)))
+            .thenReturn(transcriptionText);
+        when(textToSpeechModel.call(anyString())).thenReturn(ttsAudio);
+
+        var requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
+        var callSpec = mock(ChatClient.CallResponseSpec.class);
+
+        when(chatClient.prompt()).thenReturn(requestSpec);
+        when(requestSpec.user(transcriptionText)).thenReturn(requestSpec);
+        when(requestSpec.call()).thenReturn(callSpec);
+        when(callSpec.content()).thenReturn(aiResponse);
+
+        // Act & Assert
+        mockMvc.perform(multipart("/transactions/ai")
+                .file(file)
+                .param("language", "pt"))
+            .andExpect(status().isOk())
+            .andExpect(header().exists("Content-Disposition"))
+            .andExpect(header().string("Content-Type", "audio/mp3"));
+
+        ArgumentCaptor<OpenAiAudioTranscriptionOptions> optionsCaptor =
+            ArgumentCaptor.forClass(OpenAiAudioTranscriptionOptions.class);
+        verify(transcriptionModel, times(1)).transcribe(any(Resource.class), optionsCaptor.capture());
+        assertThat(optionsCaptor.getValue().getLanguage()).isEqualTo("pt");
+    }
+
+    @Test
+    @DisplayName("Deve transcrever áudio com idioma em inglês e processar com IA")
+    void testTranscribeAudioWithEnglishLanguageSuccess() throws Exception {
+        // Arrange
+        byte[] audioContent = "fake audio content".getBytes();
+        MockMultipartFile file = new MockMultipartFile(
+            "file",
+            "test.mp3",
+            "audio/mpeg",
+            audioContent
+        );
+        var transcriptionText = "I spent 50 dollars at the store";
+        var aiResponse = "Transaction registered";
+        var ttsAudio = "fake mp3 audio response".getBytes();
+
+        when(transcriptionModel.transcribe(any(Resource.class), any(AudioTranscriptionOptions.class)))
+            .thenReturn(transcriptionText);
+        when(textToSpeechModel.call(anyString())).thenReturn(ttsAudio);
+
+        var requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
+        var callSpec = mock(ChatClient.CallResponseSpec.class);
+
+        when(chatClient.prompt()).thenReturn(requestSpec);
+        when(requestSpec.user(transcriptionText)).thenReturn(requestSpec);
+        when(requestSpec.call()).thenReturn(callSpec);
+        when(callSpec.content()).thenReturn(aiResponse);
+
+        // Act & Assert
+        mockMvc.perform(multipart("/transactions/ai")
+                .file(file)
+                .param("language", "en"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Content-Type", "audio/mp3"));
+
+        ArgumentCaptor<OpenAiAudioTranscriptionOptions> optionsCaptor =
+            ArgumentCaptor.forClass(OpenAiAudioTranscriptionOptions.class);
+        verify(transcriptionModel, times(1)).transcribe(any(Resource.class), optionsCaptor.capture());
+        assertThat(optionsCaptor.getValue().getLanguage()).isEqualTo("en");
     }
 
     // ===== TESTES DE INTEGRAÇÃO ENTRE ENDPOINTS =====

@@ -11,7 +11,7 @@ description = 'budgeting'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -38,6 +38,7 @@ dependencies {
     testImplementation 'org.mockito:mockito-core:5.+'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.+'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.+'
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {

@@ -1,6 +1,7 @@
 package dio.budgeting;
 
 import org.springframework.ai.audio.transcription.TranscriptionModel;
+import org.springframework.ai.openai.OpenAiAudioTranscriptionOptions;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,11 +19,22 @@ public class TranscriptionController {
     }
 
     @PostMapping(value = "/transcribe", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    String transcribe(@RequestParam("file") MultipartFile file) {
+    public String transcribe(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "language", required = false) String language) {
         var resource = file.getResource();
-        var result = transcriptionModel.transcribe(resource);
-        System.out.println(result);
 
+        String result;
+        if (language != null && !language.isBlank()) {
+            var options = OpenAiAudioTranscriptionOptions.builder()
+                    .language(language)
+                    .build();
+            result = transcriptionModel.transcribe(resource, options);
+        } else {
+            result = transcriptionModel.transcribe(resource);
+        }
+
+        System.out.println(result);
         return result;
     }
 }

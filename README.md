@@ -2,204 +2,161 @@
 
 > Projeto desenvolvido no bootcamp **Santander 2026 - AI Java Back-end** da **DIO - Digital Innovation One**
 > 
-> **Instrutor:** Thiago Poiani
+> **Instrutor:** Thiago Poiani  
+> **Aluno / Desenvolvedor:** Mateus
 
-Projeto incrementado com testes unitários.
+---
 
-### 🧪 Testes Implementados
+## 🚀 Novidades e Melhorias Implementadas
 
-#### TransactionControllerTest
-Testes unitários completos para a classe `TransactionController` com cobertura de:
+### 🌐 1. Seleção Dinâmica de Idioma na Transcrição (Speech-to-Text)
+Agora a API suporta a especificação customizada do **idioma de transcrição** do áudio através do parâmetro opcional `language` (códigos ISO-639-1 como `pt`, `en`, `es`, `fr`, etc.), aproveitando o poder do modelo Whisper da OpenAI através do Spring AI (`OpenAiAudioTranscriptionOptions`).
 
-**Testes do Endpoint POST /transactions:**
-- ✅ `testCreateTransactionSuccess` - Criar transação com sucesso e validar resposta
-- ✅ `testCreateTransactionHttpStatus` - Validar status HTTP 201 CREATED
-- ✅ `testCreateTransactionCallsUseCase` - Verificar que o use case é chamado corretamente
+- **Endpoint `POST /api/transcribe`**:
+  - Aceita `file` (MultipartFile) obrigatório.
+  - Aceita `language` (String) opcional (ex: `pt`, `en`, `es`).
+  - Quando informado, o modelo transcreve com precisão no idioma especificado. Quando omitido, utiliza a detecção/configuração padrão.
+- **Endpoint `POST /transactions/ai`**:
+  - Aceita `file` (MultipartFile) obrigatório e `language` (String) opcional.
+  - Processa a transcrição no idioma escolhido, passa o texto resultante para o assistente de IA registrar transações automaticamente e retorna o áudio sintetizado (TTS).
 
-**Testes do Endpoint GET /transactions/{category}:**
-- ✅ `testListTransactionsByCategorySuccess` - Listar transações por categoria com sucesso
-- ✅ `testListTransactionsByCategoryEmpty` - Retornar lista vazia quando não há transações
-- ✅ `testListTransactionHttpStatus` - Validar status HTTP 200 OK
-- ✅ `testListTransactionsByDifferentCategories` - Listar transações de categorias diferentes
+---
 
-**Testes do Endpoint POST /transactions/ai:**
-- ✅ `testTranscribeAudioSuccess` - Transcrever áudio e processar com IA com sucesso
-- ✅ `testTranscribeReturnsCorrectContentType` - Validar Content-Type audio/mp3
-- ✅ `testTranscribeAudioWithoutFile` - Retornar erro 400 quando arquivo não é informado
-- ✅ `testTranscribeCallsTranscriptionModel` - Verificar que o modelo de transcrição é chamado
-- ✅ `testTranscribeCallsTextToSpeechModel` - Verificar que o modelo TTS é chamado
+### 🧪 2. Cobertura Abrangente de Testes Unitários
 
-**Testes de Integração:**
-- ✅ `testMultipleOperations` - Validar múltiplas operações sequenciais
+Todos os testes rodam de forma independente e rápida usando **Mockito**, **MockMvc** e banco em memória **H2** para testes de contexto, sem necessidade de dependências externas ativas.
 
-**Tecnologias de Teste:**
-- Mock de `ChatClient` com Mockito (simples e sem dependências externas)
-- Mock de `TranscriptionModel` e `TextToSpeechModel`
-- `MockMvc` para testes de integração HTTP
-- Validação de status HTTP, headers e conteúdo JSON
+#### 📁 `TranscriptionControllerTest` (Novos Testes)
+- ✅ `shouldTranscribeAudioSuccessfullyWithoutLanguage` - Transcrever áudio com sucesso sem especificar idioma (comportamento padrão).
+- ✅ `shouldTranscribeAudioSuccessfullyWithLanguage` - Transcrever áudio especificando idioma português (`pt`) via `OpenAiAudioTranscriptionOptions`.
+- ✅ `shouldTranscribeAudioSuccessfullyWithEnglishLanguage` - Transcrever áudio especificando idioma inglês (`en`).
+- ✅ `shouldFallbackToDefaultWhenLanguageIsBlank` - Fallback para transcrição padrão quando `language` for vazio ou em branco.
+- ✅ `shouldReturnBadRequestWhenFileNotProvided` - Validação de erro HTTP 400 Bad Request quando arquivo não é fornecido.
+
+#### 📁 `TransactionControllerTest`
+- **POST /transactions:**
+  - ✅ `testCreateTransactionSuccess` - Criar transação com sucesso e validar resposta JSON.
+  - ✅ `testCreateTransactionHttpStatus` - Validar status HTTP 201 CREATED.
+  - ✅ `testCreateTransactionCallsUseCase` - Verificar chamada correta do caso de uso de persistência.
+- **GET /transactions/{category}:**
+  - ✅ `testListTransactionsByCategorySuccess` - Listar transações filtradas por categoria.
+  - ✅ `testListTransactionsByCategoryEmpty` - Retornar lista vazia quando não há transações na categoria.
+  - ✅ `testListTransactionHttpStatus` - Validar status HTTP 200 OK.
+  - ✅ `testListTransactionsByDifferentCategories` - Listar transações de categorias distintas.
+- **POST /transactions/ai:**
+  - ✅ `testTranscribeAudioSuccess` - Transcrever áudio e processar com IA e TTS com sucesso.
+  - ✅ `testTranscribeAudioWithLanguageSuccess` - Transcrever áudio com opção de idioma informado (`pt`) e processar com IA.
+  - ✅ `testTranscribeAudioWithEnglishLanguageSuccess` - Transcrever áudio com idioma em inglês (`en`) e processar com IA.
+  - ✅ `testTranscribeReturnsCorrectContentType` - Validar Content-Type `audio/mp3`.
+  - ✅ `testTranscribeAudioWithoutFile` - Retornar HTTP 400 Bad Request ao não informar arquivo.
+  - ✅ `testTranscribeCallsTranscriptionModel` - Verificar chamada correta do `TranscriptionModel`.
+  - ✅ `testTranscribeCallsTextToSpeechModel` - Verificar chamada correta do `TextToSpeechModel`.
+- **Testes de Integração entre Endpoints:**
+  - ✅ `testMultipleOperations` - Validar múltiplas operações sequenciais de criação e consulta.
+
+---
 
 ## 📋 Descrição do Projeto
 
 Uma API REST inteligente que permite gerenciar transações financeiras com suporte a reconhecimento de fala (Speech-to-Text), processamento de linguagem natural com IA e síntese de fala (Text-to-Speech) usando OpenAI.
 
 **Funcionalidades principais:**
-- 📝 Criar transações financeiras
-- 🎤 Transcrever áudio em português para criar transações automaticamente
-- 🤖 Processar transações com IA (GPT-4o-mini)
-- 🔊 Gerar áudio com resposta da IA
-- 🏷️ Listar transações por categoria
+- 📝 Criar transações financeiras manualmente ou via áudio.
+- 🌐 Transcrever áudio com suporte a escolha de idioma (`pt`, `en`, `es`, etc.).
+- 🤖 Processar transações com IA (GPT-4o-mini com Tool Calling).
+- 🔊 Gerar áudio MP3 com resposta da IA sintetizada.
+- 🏷️ Listar transações por categoria (`GROCERIES`, `AUTO`, `PHARMA`, etc.).
 
 ---
 
-## 🛠️ Tecnologias Estudadas
+## 🛠️ Tecnologias Utilizadas
 
 ### Backend
 - **Java 21** - Linguagem de programação
-- **Spring Boot 3.2+** - Framework web
+- **Spring Boot 4 / 3.x** - Framework backend moderno
 - **Spring Web** - Criação de APIs REST
 - **Spring Data JPA** - Persistência de dados
-- **Spring AI** - Integração com modelos de IA (OpenAI)
-  - Transcription (Whisper)
-  - Chat Completion (GPT-4o-mini)
-  - Text-to-Speech (TTS)
+- **Spring AI (v2.0.0-M4)** - Integração com OpenAI:
+  - **Whisper**: Speech-to-Text com suporte a idiomas
+  - **GPT-4o-mini**: Chat Completion & Function Calling (Tools)
+  - **TTS**: Síntese de fala
 
 ### Banco de Dados
-- **MySQL 8** - Banco de dados relacional
-- **Hibernate** - ORM (Object-Relational Mapping)
+- **MySQL 8** (Produção/Docker)
+- **H2 Database** (Testes em memória)
+- **Hibernate** - ORM
 
-### Integrações
-- **OpenAI API** - Processamento de fala e IA
-  - Whisper: Reconhecimento de fala
-  - GPT-4o-mini: Chat e processamento de linguagem natural
-  - TTS: Síntese de fala
-
-### Ferramentas
-- **Maven** - Gerenciamento de dependências
-- **Lombok** - Redução de boilerplate (getters, setters, construtores)
-- **JUnit 5 + AssertJ** - Testes
-- **Git** - Controle de versão
-
----
-
-## 📚 Conhecimentos Adquiridos
-
-### 1. **Arquitetura de API REST**
-- Estrutura de controllers, services e repositories
-- Padrão de resposta com DTOs (Data Transfer Objects)
-- HTTP Status Codes adequados
-
-### 2. **Autenticação e Autorização**
-- Integração com Spring Security (conceitos)
-- Validação de requests
-
-### 3. **Persistência de Dados**
-- Mapeamento de entidades JPA
-- Relacionamentos entre entidades
-- Conversão de tipos customizados (UUID → String em MySQL)
-- Operações CRUD
-
-### 4. **Integração com IA**
-- Chamadas a APIs de terceiros (OpenAI)
-- Processamento de áudio
-- Chat com modelos de linguagem
-- Síntese de fala
-
-### 5. **Tratamento de Timeouts e Performance**
-- Configuração de timeouts em múltiplas camadas
-- Otimização de responses
-- Gerenciamento de requisições longas
-
-### 6. **Testes**
-- Testes de integração com Spring Boot
-- Condicionalidade de testes (EnabledIfEnvironmentVariable)
-- Assertions com AssertJ
-
-### 7. **Domain-Driven Design (DDD)**
-- Separação entre entidades de domínio e de persistência
-- Value Objects (TransactionId)
-- Enums para modelar dados (Category)
-
----
-
-## 🚀 Como Subir a Aplicação
-
-### Pré-requisitos
-
-1. **Java 21+** instalado
-2. **Maven 3.8+** instalado
-3. **MySQL 8+** rodando
-4. **Chave de API da OpenAI** (https://platform.openai.com/api-keys)
-
-### Passo 1: Clonar o Repositório
-
-```bash
-git clone <seu-repositorio>
-cd budgeting
-```
-
-### Passo 2: Configurar Variáveis de Ambiente
-
-Configure sua chave de API da OpenAI:
-
-**Windows:**
-```bash
-set OPENAI_API_KEY=sua_chave_aqui
-```
-
-**Linux/Mac:**
-```bash
-export OPENAI_API_KEY=sua_chave_aqui
-```
-
-### Passo 3: Configurar Banco de Dados
-
-Edite `src/main/resources/application.properties` e configure as credenciais do MySQL:
-
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/budgeting
-spring.datasource.username=seu_usuario
-spring.datasource.password=sua_senha
-spring.jpa.hibernate.ddl-auto=update
-```
-
-Crie o banco de dados:
-```sql
-CREATE DATABASE budgeting CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-### Passo 4: Instalar Dependências
-
-```bash
-mvn clean install
-```
-
-### Passo 5: Rodar a Aplicação
-
-```bash
-mvn spring-boot:run
-```
-
-Ou compile e execute:
-```bash
-mvn clean package
-java -jar target/budgeting-0.0.1-SNAPSHOT.jar
-```
-
-A aplicação estará disponível em: **http://localhost:8080**
+### Testes & Qualidade
+- **JUnit 5**
+- **Mockito** & **ArgumentCaptor**
+- **AssertJ**
+- **MockMvc**
+- **Gradle** - Build tool e gerenciamento de dependências
 
 ---
 
 ## 📡 Endpoints da API
 
-### 1. Criar Transação
+### 1. Transcrever Áudio (Speech-to-Text)
+Permite enviar um arquivo de áudio e opcionalmente especificar o idioma desejado.
+
+```http
+POST /api/transcribe
+Content-Type: multipart/form-data
+```
+
+**Parâmetros:**
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `file` | MultipartFile | Sim | Arquivo de áudio (`.mp3`, `.m4a`, `.wav`, etc.) |
+| `language` | String | Não | Código do idioma (ex: `pt`, `en`, `es`, `fr`) |
+
+**Exemplo com cURL (Português):**
+```bash
+curl -X POST http://localhost:8080/api/transcribe \
+  -F "file=@gravacao.m4a" \
+  -F "language=pt"
+```
+
+**Exemplo com cURL (Inglês):**
+```bash
+curl -X POST http://localhost:8080/api/transcribe \
+  -F "file=@recording.mp3" \
+  -F "language=en"
+```
+
+---
+
+### 2. Transcrever e Processar Transação com IA
+Envia o áudio para transcrição (com idioma opcional), a IA processa o comando, persiste a transação via Tool Calling e retorna a resposta falada em áudio MP3.
+
+```http
+POST /transactions/ai
+Content-Type: multipart/form-data
+```
+
+**Exemplo com cURL:**
+```bash
+curl -X POST http://localhost:8080/transactions/ai \
+  -F "file=@gasto.mp3" \
+  -F "language=pt" \
+  --output resposta.mp3
+```
+
+---
+
+### 3. Criar Transação Manualmente
 ```http
 POST /transactions
 Content-Type: application/json
+```
 
+**Payload:**
+```json
 {
   "description": "Compra no mercado",
   "amount": 150.50,
-  "category": "ALIMENTACAO"
+  "category": "GROCERIES"
 }
 ```
 
@@ -209,13 +166,15 @@ Content-Type: application/json
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "description": "Compra no mercado",
   "amount": 150.50,
-  "category": "ALIMENTACAO"
+  "category": "GROCERIES"
 }
 ```
 
-### 2. Listar Transações por Categoria
+---
+
+### 4. Listar Transações por Categoria
 ```http
-GET /transactions/ALIMENTACAO
+GET /transactions/GROCERIES
 ```
 
 **Resposta:**
@@ -225,140 +184,49 @@ GET /transactions/ALIMENTACAO
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "description": "Compra no mercado",
     "amount": 150.50,
-    "category": "ALIMENTACAO"
+    "category": "GROCERIES"
   }
 ]
 ```
 
-### 3. Transcrever Áudio e Processar com IA
-```http
-POST /transactions/ai
-Content-Type: multipart/form-data
-
-[Enviar arquivo de áudio]
-```
-
-**Resposta:** Arquivo MP3 com a síntese de fala da resposta da IA
-
 ---
 
-## 🧪 Rodando os Testes
+## 🧪 Como Executar os Testes
 
-### Testes Unitários
+Para rodar todos os testes unitários do projeto via linha de comando:
+
+**No Windows:**
 ```bash
-mvn test
+.\gradlew.bat test
 ```
 
-### Testes de Integração (requer OPENAI_API_KEY)
+**No Linux / macOS:**
 ```bash
-mvn integration-test
-# ou
-mvn test -Dgroups="integration"
+./gradlew test
 ```
+
+O relatório visual completo dos testes em HTML pode ser acessado em:
+`build/reports/tests/test/index.html`
 
 ---
 
-## 📂 Estrutura do Projeto
+## 🔑 Configuração de Variáveis de Ambiente
 
+Para executar a aplicação com integração real da OpenAI, defina a chave de API:
+
+```bash
+# Windows (PowerShell)
+$env:OPENAI_API_KEY="sua-chave-openai-aqui"
+
+# Windows (CMD)
+set OPENAI_API_KEY=sua-chave-openai-aqui
+
+# Linux / macOS
+export OPENAI_API_KEY=sua-chave-openai-aqui
 ```
-budgeting/
-├── src/
-│   ├── main/
-│   │   ├── java/dio/budgeting/
-│   │   │   ├── domain/              # Entidades de domínio
-│   │   │   │   ├── Transaction
-│   │   │   │   ├── Category
-│   │   │   │   └── TransactionId
-│   │   │   ├── application/         # Use Cases
-│   │   │   │   ├── PersistTransactionUseCase
-│   │   │   │   └── ListTransactionsByCategoryUseCase
-│   │   │   └── infrastructure/
-│   │   │       ├── http/            # Controllers e DTOs
-│   │   │       │   ├── TransactionController
-│   │   │       │   ├── request/
-│   │   │       │   └── response/
-│   │   │       └── persistence/     # Repositories e Entities
-│   │   │           ├── entity/
-│   │   │           ├── repository/
-│   │   │           └── converter/
-│   │   └── resources/
-│   │       ├── application.properties
-│   │       └── prompts/
-│   └── test/
-│       └── java/dio/budgeting/
-│           ├── OpenAiChatModelIT.java
-│           └── BudgetingApplicationTests.java
-├── pom.xml
-└── README.md
-```
-
----
-
-## 🔑 Configurações Importantes
-
-### `application.properties`
-
-```properties
-# Banco de Dados
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-
-# OpenAI
-spring.ai.openai.api-key=${OPENAI_API_KEY}
-spring.ai.openai.chat-model=gpt-4o-mini
-
-# Transcrição de Áudio (Whisper)
-spring.ai.openai.audio.transcription-model=whisper-1
-spring.ai.openai.audio.transcription.options.response.language=pt
-
-# Síntese de Fala (TTS)
-spring.ai.openai.audio.speech.options.model=gpt-4o-mini-tts
-spring.ai.openai.audio.speech.options.voice=nova
-
-# Timeouts
-spring.ai.openai.chat.client.timeout=300000
-server.tomcat.connection-timeout=300000
-server.servlet.session.timeout=30m
-
-# Logs
-logging.level.org.springframework.ai=DEBUG
-```
-
----
-
-## 🐛 Problemas Comuns e Soluções
-
-### Erro: "openAiApi cannot be null"
-**Solução:** Adicionar `@SpringBootTest` no teste de integração
-
-### Erro: "Incorrect string value for column 'id'"
-**Solução:** UUID no MySQL precisa de VARCHAR(36). Usar `@Column(columnDefinition = "VARCHAR(36)")`
-
-### Erro: "Read timed out"
-**Solução:** Aumentar timeouts em `application.properties`:
-```properties
-spring.ai.openai.chat.client.timeout=300000
-server.tomcat.connection-timeout=300000
-```
-
----
-
-## 📖 Recursos Adicionais
-
-- [Spring Boot Documentation](https://spring.io/projects/spring-boot)
-- [Spring AI Documentation](https://spring.io/projects/spring-ai)
-- [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
-- [DIO - Digital Innovation One](https://www.dio.me/)
 
 ---
 
 ## 👨‍💻 Autor
 
-Desenvolvido durante o bootcamp **Santander 2026 - AI Java Back-end** com orientação de **Thiago Poiani**
-
----
-
-## 📝 Licença
-
-Este projeto é fornecido como material educacional do bootcamp.
-
+Projeto desenvolvido e aprimorado como parte da formação **Santander 2026 - AI Java Back-end** na **DIO - Digital Innovation One**.
