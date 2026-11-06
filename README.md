@@ -1,6 +1,6 @@
 # API Inteligente de Gerenciamento de Orçamento com Reconhecimento de Fala
 
-> Projeto desenvolvido no bootcamp **Santander 2026 - AI Java Back-end** da **DIO - Digital Innovation One**
+> Projeto desenvolvido no bootcamp ** Itau DIO 2026 - AI Java Back-end** da **DIO - Digital Innovation One**
 > 
 > **Instrutor:** Thiago Poiani  
 > **Aluno / Desenvolvedor:** Mateus
